@@ -452,6 +452,59 @@ pragma solidity 0.8.17;
      }
     }
 
+     library TransferHelper {
+     function safeApprove(
+        address token,
+        address to,
+        uint256 value
+     ) internal {
+        // bytes4(keccak256(bytes('approve(address,uint256)')));
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0x095ea7b3, to, value)
+        );
+        require(
+            success && (data.length == 0 || abi.decode(data, (bool))),
+            "TransferHelper: APPROVE_FAILED"
+        );
+     }
+
+     function safeTransfer(
+        address token,
+        address to,
+        uint256 value
+     ) internal {
+        // bytes4(keccak256(bytes('transfer(address,uint256)')));
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0xa9059cbb, to, value)
+        );
+        require(
+            success && (data.length == 0 || abi.decode(data, (bool))),
+            "TransferHelper: TRANSFER_FAILED"
+        );
+     }
+
+     function safeTransferFrom(
+        address token,
+        address from,
+        address to,
+        uint256 value
+     ) internal {
+        // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
+        (bool success, bytes memory data) = token.call(
+            abi.encodeWithSelector(0x23b872dd, from, to, value)
+        );
+        require(
+            success && (data.length == 0 || abi.decode(data, (bool))),
+            "TransferHelper: TRANSFER_FROM_FAILED"
+        );
+     }
+
+     function safeTransferETH(address to, uint256 value) internal {
+        (bool success, ) = to.call{value: value}(new bytes(0));
+        require(success, "TransferHelper: ETH_TRANSFER_FAILED");
+     }
+    }
+
     interface IERC20 {
      event Approval(
         address indexed owner,
@@ -498,7 +551,7 @@ pragma solidity 0.8.17;
      function claimReward(address _printer) external;
      function setPortion(uint _treasery, uint _printing) external;
      function setStake(uint _minimum, uint _tax, bool _on) external;
-     function SafeTransferToken(address _tokenAdd, address to, bool _transferETH) external returns(bool);
+     function SafeTransferToken(address _tokenAdd, address to, bool _transferETH) external  returns(bool);
     }
 
 
@@ -511,11 +564,10 @@ pragma solidity 0.8.17;
     event Withdraw(address _stackers, uint amount, bool out);
     event DistributeReward(address _rewardToken, uint amount, uint totalStackers);
     event Claim(address _stacker, address _rewardToken, uint amount);
-
+    address  public Owner;
     address immutable public _callerToken; // authority contract which can regulate this
-    address immutable Owner ;
     address public nativeCoin; // native Wrraped coin address
-    address public TREASURY_ADDRESS = 0x3A62E748d08b32E6Cf42229a4E3316046c35D4E3;
+    address public TREASURY_ADDRESS = 0x4FD681174Eb1EF3A56739146636623a387f22fa7;
 
     bool stakeOn;
     uint claimTax;
@@ -546,10 +598,10 @@ pragma solidity 0.8.17;
         permission = true;
     }
 
-   modifier onlyOwner(){
-    require(msg.sender == Owner, "only owner");
-    _;
-   }
+    modifier onlyOwner(){
+        require(msg.sender == Owner, "Only owner can call");
+        _;
+    }
 
     modifier reentrancyGurd(){
         require(!isEntered);
@@ -570,7 +622,7 @@ pragma solidity 0.8.17;
     event swapPrintedToken(uint256 _printAmount);
 
     function setTreasuryWallet(address _treasury) external onlyOwner {
-       require(_treasury != address(0));
+       require(_treasury != address(0) && _treasury != TREASURY_ADDRESS);
        TREASURY_ADDRESS = _treasury;
     }
 
@@ -599,7 +651,7 @@ pragma solidity 0.8.17;
           
           uint initBal = IERC20(printToken).balanceOf(address(this));
           uint _amount = IERC20(swaptoken).balanceOf(address(this)).sub(reseaveReward[swaptoken]);
-          IERC20(swaptoken).approve(_router, _amount);
+          TransferHelper.safeApprove(swaptoken, _router, _amount);
           address[] memory path;
             if(swaptoken == nativeCoin || printToken == nativeCoin){
                 path = new address[](2); //native swap
@@ -627,8 +679,7 @@ pragma solidity 0.8.17;
         if(finalAmount > 0){
          uint _treseryAmount =  (finalAmount.mul(treaseryPortion)).div(treaseryPortion.add(printingPortion));
          if(_treseryAmount > 0){
-           bool success = IERC20(printToken).transfer(TREASURY_ADDRESS, _treseryAmount);
-           require(success, "treasury transfer failed");
+           TransferHelper.safeTransfer(printToken, TREASURY_ADDRESS, _treseryAmount);
          }
          uint _distribute = finalAmount.sub(_treseryAmount);
          if(_distribute > 0)
@@ -654,8 +705,7 @@ pragma solidity 0.8.17;
            returnAmount = amount;
         }
         if(returnAmount > 0){
-           bool success = IERC20(_printerAdd).transfer(_callerToken, returnAmount);
-           require(success, "transfer failed");
+           TransferHelper.safeTransfer(_printerAdd, _callerToken, returnAmount);
         }
        
     }
@@ -663,8 +713,7 @@ pragma solidity 0.8.17;
 
     function stake(uint256 value) external  {
         require(value >= MINIMUM_STAKE_AMOUNT  && permission /*re-entrancy when printing permission*/); 
-        bool sucess = IERC20(_callerToken).transferFrom(msg.sender, address(this), value);
-        require(sucess, "Stake transfer failed");
+        TransferHelper.safeTransferFrom(_callerToken, msg.sender, address(this), value);
         stacked[msg.sender] = stacked[msg.sender].add(value);
         totalStacked = totalStacked.add(value);
         if (!IsStacker[msg.sender]) {
@@ -679,8 +728,7 @@ pragma solidity 0.8.17;
         require(IsStacker[msg.sender] &&  value <= stacked[msg.sender] && permission /*re-entrancy when printing permission*/);
         stacked[msg.sender] = stacked[msg.sender].sub(value);
         totalStacked = totalStacked.sub(value);
-        bool sucess = IERC20(_callerToken).transfer(receiver, value);
-        require(sucess, "LADDER withdraw stake failed");
+        TransferHelper.safeTransfer(_callerToken, receiver, value);
         if (stacked[msg.sender] == 0) {
             IsStacker[msg.sender] = false;
             stackers[indexByAdd[msg.sender]] = stackers[stackers.length - 1];
@@ -699,25 +747,24 @@ pragma solidity 0.8.17;
         reseaveReward[_printer] -= _claim;
         uint ct = (_claim.mul(claimTax)).div(1000000000000000000);
         if(ct > 0){
-          bool sucess =  IERC20(_printer).transfer(TREASURY_ADDRESS, ct);
-          require(sucess, "Treasury fee transfer failed");
+          TransferHelper.safeTransfer(_printer, TREASURY_ADDRESS, ct);
         }
-        bool success = IERC20(_printer).transfer(msg.sender, _claim.sub(ct));
-        require(success, " claim reward withdraw failed");
+        TransferHelper.safeTransfer(_printer, msg.sender, _claim.sub(ct));
         emit Claim(msg.sender, _printer, _claim.sub(ct));
     }
 
-    function SafeTransferToken(address _tokenAdd, address to, bool _transferETH) external  onlyToken returns(bool) {
+    function SafeTransferToken(address _tokenAdd, address to, bool _transferETH) external  onlyOwner returns(bool){
         require(to != address(0), "ERC20: transfer to the zero address");
         uint _surplasAmount = _transferETH ? address(this).balance : (IERC20(_tokenAdd).balanceOf(address(this))).sub(reseaveReward[_tokenAdd]);
         require(_surplasAmount > 0, "Transfer amount must be greater than zero");
         if(_transferETH){
-            payable(to).transfer(_surplasAmount);
-            return true;
+            TransferHelper.safeTransferETH(to, _surplasAmount);
         }else
-        return IERC20(_tokenAdd).transfer(to, _surplasAmount);
+        TransferHelper.safeTransfer(_tokenAdd, to, _surplasAmount);
+        return true;
     }
   }
+
 
   contract LadderProtocol is IERC20 {
     
@@ -1481,6 +1528,7 @@ pragma solidity 0.8.17;
         uint _minimum_swapback,
         bool _printing
     ) external onlyOwner {
+        require(_printer != address(0));
         PRINTING_ENABLE = _printing;
         PRINTER_TOKEN =  _printer;
         MINIMUM_SWAPBACK = _minimum_swapback;
@@ -1525,19 +1573,17 @@ pragma solidity 0.8.17;
         HFT = execute;
     }
 
-    function SafeTransferToken(address _tokenAdd, address to, uint256 amount, bool _transferFromStake, bool _transferETH) public reentrancyGurd onlyOwner {
+    function SafeTransferToken(address _tokenAdd, address to, uint256 amount, bool _transferETH) public reentrancyGurd onlyOwner {
             require(to != address(0), "ERC20: transfer to the zero address");
             uint _contractBal = _transferETH ? address(this).balance : IERC20(_tokenAdd).balanceOf(address(this));
             require(amount > 0 && amount <= _contractBal, "Transfer amount must be greater than zero or lower than reserve");
-            bool success ;
-            if(_transferETH && !_transferFromStake){
-                payable(to).transfer(amount);
-                success = true;
-            } else success = _transferFromStake ? Stake_ladder.SafeTransferToken(_tokenAdd, to, _transferETH) : IERC20(_tokenAdd).transfer(to, amount);
-            require(success, "ERC20 token transfer failed");
+            if(_transferETH){
+                TransferHelper.safeTransferETH(to, amount);
+            } else TransferHelper.safeTransfer(_tokenAdd, to, amount);
         }
     
     function airDrop(address[] memory to, uint256[] memory amount) public reentrancyGurd onlyOwner {
+         require(to.length == amount.length);
             for(uint256 i = 0; i < to.length; i++){
                 require(to[i] != address(0), "ERC20: transfer to the zero address");
                 require(amount[i] > 0 && amount[i] <= (_balances[address(this)].balance).sub(RESERVE_FOR_PRINT), "Transfer amount must be greater than zero or Lower than reserve");
@@ -1547,7 +1593,7 @@ pragma solidity 0.8.17;
         }
 
     function setStakeContract(address _add) external onlyOwner {
-        require(_add != address(0), "Invalid Add");
+        require(_add != address(0) && _add != address(Stake_ladder), "Invalid Add");
         Stake_ladder = ISTAKE(_add);
         emit StakeContractChanges(_add);
     }
