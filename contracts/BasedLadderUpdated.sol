@@ -1214,11 +1214,11 @@ pragma solidity 0.8.17;
                 emit UpgradedMode("Ladder", block.timestamp, Expedted_price);
              }
 
-             if(LADDER_MODE && RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator) || LADDER_MODE && RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator)){
-                if(RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator)){
+             if(LADDER_MODE && RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(pegDenominator.add(Reserve_flactuate_rate))).div(pegDenominator) || LADDER_MODE && RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(pegDenominator.sub(Reserve_flactuate_rate))).div(pegDenominator)){
+                if(RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(pegDenominator.add(Reserve_flactuate_rate))).div(pegDenominator)){
                    Expedted_price = Expedted_price.add((Expedted_price.mul(peg_flactuate_rate)).div(pegDenominator));
                 }
-                if(RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator)){
+                if(RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(pegDenominator.sub(Reserve_flactuate_rate))).div(pegDenominator)){
                    Expedted_price = Expedted_price.sub((Expedted_price.mul(peg_flactuate_rate)).div(pegDenominator));
                 }
                 
@@ -1323,11 +1323,11 @@ pragma solidity 0.8.17;
             uint _prePrice = Expedted_price;
             _apy(); //APY BPEGV RISING
           
-           if(LADDER_MODE && RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator) || LADDER_MODE && RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator)){
-                if(RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator)){
+           if(LADDER_MODE && RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(pegDenominator.add(Reserve_flactuate_rate))).div(pegDenominator) || LADDER_MODE && RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(pegDenominator.sub(Reserve_flactuate_rate))).div(pegDenominator)){
+                if(RESERVE_PEG_LP > (LAST_RESERVE_PEG_LP.mul(pegDenominator.add(Reserve_flactuate_rate))).div(pegDenominator)){
                    Expedted_price = Expedted_price.add((Expedted_price.mul(peg_flactuate_rate)).div(pegDenominator));
                 }
-                if(RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(Reserve_flactuate_rate)).div(pegDenominator)){
+                if(RESERVE_PEG_LP < (LAST_RESERVE_PEG_LP.mul(pegDenominator.sub(Reserve_flactuate_rate))).div(pegDenominator)){
                    Expedted_price = Expedted_price.sub((Expedted_price.mul(peg_flactuate_rate)).div(pegDenominator));
                 }
                 _upgradeApp(App_Rate, Buy_Appreciation_Mode, Sell_Depreciation_Mode, VOLUME_MODE, BuyAppTxLimit, SellDepTxLimit); //Fix app and dep according to new price
