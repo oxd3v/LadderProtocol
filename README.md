@@ -1,13 +1,7 @@
-# Sample Hardhat Project
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
 
-Try running some of the following tasks:
+#Ladder Protocol
+"$Ladder" is a special token that goes up in value when people buy it, but it doesn't decrease to zero when people sell it because it has a base price. This is because of a modified rebase that happens within the liquidity pool. As more people invest in the liquidity pool, the value of the token will go up in a step-by-step manner.
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
+Docs: https://basedladder.gitbook.io/based-ladder/basic-premise-of-ladder
+Twitter: https://twitter.com/LadderProtocol
