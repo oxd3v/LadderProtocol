@@ -804,7 +804,7 @@ pragma solidity 0.8.17;
 
         ISTAKE public Stake_ladder; 
 
-        IDEXV2ROUTER02 public DEXV2Router =  IDEXV2ROUTER02(0x8cFe327CEc66d1C090Dd72bd0FF11d690C33a2Eb);  //Pancake router02
+        IDEXV2ROUTER02 public DEXV2Router =  IDEXV2ROUTER02(0xd16B472C1b3AB8bc40C1321D7b33dB857e823f01);  //Pancake router02
         IDEXV2Pair public DEXV2Pair;
 
         struct balanceInfo {
@@ -1088,7 +1088,7 @@ pragma solidity 0.8.17;
                   }
                 }
             }else{
-             if (from != address(DEXV2Pair) && to != address(DEXV2Pair))  SOFT_UPGRADE();
+             if (from != address(DEXV2Pair) && to != address(DEXV2Pair))  DISTRIBUTE();
              
              if(IsLiquidityProvider[from] || IsLiquidityProvider[to]){
                 IsLiquidityProvider[from] = false;
@@ -1321,7 +1321,7 @@ pragma solidity 0.8.17;
         return true;
     }
 
-    function SOFT_UPGRADE() public {
+    function DISTRIBUTE() public {
         if(APY_MODE && BLAST_MODE || LADDER_MODE && BLAST_MODE){
             uint _prePrice = Expedted_price;
             _apy(); //APY BPEGV RISING
