@@ -877,6 +877,9 @@ pragma solidity 0.8.17;
         uint BuyAppTxLimit;
         uint SellDepTxLimit;  
 
+        bool init;
+        uint  initialPrice;
+
 
 
         modifier onlyOwner(){
@@ -1337,17 +1340,20 @@ pragma solidity 0.8.17;
            if(_prePrice != Expedted_price) _recover(Expedted_price);
         }
     }
-
-    function HARD_UPGRADE(uint256 _price, bool _recoveringToInitialPhase) external onlyOwner {
-        _recover(_price);
-        if (_recoveringToInitialPhase) {
+    
+    function Initialize() external onlyOwner {
+         if(init == false){
+            init = true;
+            initialPrice = priceNow();
+         }
+        _recover(initialPrice);
             STABLE_MODE = true;
             Buy_Appreciation_Mode = false;
             Sell_Depreciation_Mode = false;
             LADDER_MODE = false;
             APY_MODE = false;
             emit UpgradedMode("HardPeg", block.timestamp, Expedted_price);
-        }
+        
     }
 
     function _recover(uint256 _basePrice) private {
